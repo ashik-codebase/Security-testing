@@ -1,0 +1,88 @@
+name: Mavericks Security SAST
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  mavericks-scan:
+    name: Run SAST & AI Analysis
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python (for SAST tools)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Detect Language
+        id: detect
+        shell: bash
+        run: |
+          echo "Detecting primary language..."
+          if [ -f "requirements.txt" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+            echo "lang=python" >> ${{GITHUB_OUTPUT}}
+            echo "Detected Python"
+          elif [ -f "pom.xml" ] || [ -f "build.gradle" ]; then
+            echo "lang=java" >> ${{GITHUB_OUTPUT}}
+            echo "Detected Java"
+          elif [ -f "package.json" ]; then
+            echo "lang=javascript" >> ${{GITHUB_OUTPUT}}
+            echo "Detected JavaScript/TypeScript"
+          else
+            echo "lang=unknown" >> ${{GITHUB_OUTPUT}}
+            echo "Unknown language, falling back to auto-detect"
+          fi
+
+      - name: Install SAST Tools
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          # Semgrep supports 30+ languages, install it unconditionally
+          pip install semgrep
+
+          # Install Bandit specifically for Python
+          if [ "${{ steps.detect.outputs.lang }}" = "python" ]; then
+            pip install bandit
+          fi
+
+      - name: Run Semgrep
+        shell: bash
+        run: |
+          echo "Running Semgrep..."
+          # || true ensures the workflow doesn't fail if findings are found
+          semgrep scan --config auto --sarif --output semgrep.sarif || true
+
+      - name: Run Bandit (Python Only)
+        if: steps.detect.outputs.lang == 'python'
+        shell: bash
+        run: |
+          echo "Running Bandit..."
+          bandit -r . -f sarif -o bandit.sarif || true
+
+      - name: Post SARIF to Mavericks Backend
+        shell: bash
+        run: |
+          echo "Uploading results to Mavericks platform..."
+
+          FILES=""
+          if [ -f "semgrep.sarif" ]; then FILES="$FILES -F files=@semgrep.sarif"; fi
+          if [ -f "bandit.sarif" ]; then FILES="$FILES -F files=@bandit.sarif"; fi
+
+          if [ -z "$FILES" ]; then
+            echo "No SARIF files generated. Exiting."
+            exit 0
+          fi
+
+          # POST to the self-hosted Mavericks API
+          curl -X POST "http://127.0.0.1:8000/api/assessments/from-sarif" \
+            -F "repository=${{ github.repository }}" \
+            -F "pr_number=${{ github.event.pull_request.number }}" \
+            -F "commit_sha=${{ github.event.pull_request.head.sha }}" \
+            -F "branch=${{ github.event.pull_request.head.ref }}" \
+            $FILES
