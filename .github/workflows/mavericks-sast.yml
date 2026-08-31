@@ -26,13 +26,13 @@ jobs:
         run: |
           echo "Detecting primary language..."
           if [ -f "requirements.txt" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
-            echo "lang=python" >> ${{GITHUB_OUTPUT}}
+            echo "lang=python" >> $GITHUB_OUTPUT
           elif [ -f "pom.xml" ] || [ -f "build.gradle" ]; then
-            echo "lang=java" >> ${{GITHUB_OUTPUT}}
+            echo "lang=java" >> $GITHUB_OUTPUT
           elif [ -f "package.json" ]; then
-            echo "lang=javascript" >> ${{GITHUB_OUTPUT}}
+            echo "lang=javascript" >> $GITHUB_OUTPUT
           else
-            echo "lang=unknown" >> ${{GITHUB_OUTPUT}}
+            echo "lang=unknown" >> $GITHUB_OUTPUT
           fi
 
       - name: Install SAST Tools
