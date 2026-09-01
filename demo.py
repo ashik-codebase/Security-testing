@@ -19,7 +19,7 @@ def get_user_profile(username: str):
 def run_system_diagnostic(host: str):
     """
     VULNERABILITY 2: OS Command Injection (OWASP A03:2021 / CWE-78)
-    Unsanitized user input passed to system shell.
+    Unsanitized user input passed to system shell.ftt
     """
     # Insecure shell command execution with shell=False
     cmd = f"ping -c 1 {host}"
