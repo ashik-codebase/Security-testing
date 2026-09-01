@@ -23,7 +23,7 @@ def run_system_diagnostic(host: str):
     """
     # Insecure shell command execution with shell=True
     cmd = f"ping -c 1 {host}"
-    output = subprocess.check_output(cmd, shell=True)
+    output = subprocess.check_output(cmd, shell=False)
     return output.decode("utf-8")
 
 def hash_user_password(password: str):
