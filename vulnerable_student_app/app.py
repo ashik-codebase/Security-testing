@@ -1,6 +1,6 @@
 import streamlit as st
 import sqlite3
-
+#testu
 # Initialize In-Memory Database for local testing
 def init_db():
     conn = sqlite3.connect(":memory:", check_same_thread=False)
@@ -55,6 +55,7 @@ def init_db():
     return conn
 
 conn = init_db()
+#password for login:"password@1234"
 cursor = conn.cursor()
 
 # Session State Setup
