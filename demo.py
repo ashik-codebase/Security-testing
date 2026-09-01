@@ -32,7 +32,7 @@ def hash_user_password(password: str):
     Using broken MD5 hashing for passwords instead of Argon2id / bcrypt / PBKDF2.
     """
     # Insecure legacy MD5 hash
-    hasher = hashlib.sha256()
+    hasher = hashlib.md5()
     hasher.update(password.encode("utf-8"))
     return hasher.hexdigest()
 
