@@ -55,6 +55,7 @@ def init_db():
     return conn
 
 conn = init_db()
+#password for login:"password@1234"
 cursor = conn.cursor()
 
 # Session State Setup
