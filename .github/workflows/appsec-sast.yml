@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Fetch full history for dataflow context if needed
+          # Fetch full history for dataflow context
           fetch-depth: 0
 
       - name: Set up Python
@@ -21,7 +21,6 @@ jobs:
 
       - name: Install Scanners
         run: |
-          # Install Semgrep natively (no Docker as per MVP constraints)
           pip install semgrep
 
       - name: Run Semgrep (OWASP Top 10)
@@ -41,7 +40,16 @@ jobs:
             --slurpfile results semgrep-results.json \
             '{repository: $repo, pr_number: ($pr | tonumber), commit_sha: $sha, results: $results[0]}' > payload.json
           
-          echo "Sending payload to backend..."
+          # Resolve Backend URL with fallback to Smee URL
+          BACKEND_URL="${{ secrets.BACKEND_PUBLIC_URL }}"
+          if [ -z "$BACKEND_URL" ]; then
+            BACKEND_URL="https://smee.io/ptz0LTwBV48OEP"
+          fi
+          
+          # Remove trailing slash if present
+          BACKEND_URL="${BACKEND_URL%/}"
+          
+          echo "Sending payload to $BACKEND_URL/api/assessments/sast-results..."
           curl -X POST -H "Content-Type: application/json" \
                -d @payload.json \
-               ${{ secrets.BACKEND_PUBLIC_URL }}/api/assessments/sast-results
+               "$BACKEND_URL/api/assessments/sast-results"
