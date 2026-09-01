@@ -1,64 +1,47 @@
-name: Mavericks Security SAST
+name: AppSec SAST Scanner
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
-  mavericks-scan:
-    name: Run SAST & Upload Artifact
+  sast-scan:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          # Fetch full history for dataflow context if needed
           fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
-      - name: Detect Language
-        id: detect
-        shell: bash
+      - name: Install Scanners
         run: |
-          echo "Detecting primary language..."
-          if [ -f "requirements.txt" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
-            echo "lang=python" >> "$GITHUB_OUTPUT"
-          elif [ -f "pom.xml" ] || [ -f "build.gradle" ]; then
-            echo "lang=java" >> "$GITHUB_OUTPUT"
-          elif [ -f "package.json" ]; then
-            echo "lang=javascript" >> "$GITHUB_OUTPUT"
-          else
-            echo "lang=unknown" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install SAST Tools
-        shell: bash
-        run: |
-          python -m pip install --upgrade pip
+          # Install Semgrep natively (no Docker as per MVP constraints)
           pip install semgrep
-          if [ "${{ steps.detect.outputs.lang }}" = "python" ]; then
-            pip install bandit
-          fi
 
-      - name: Run Semgrep
-        shell: bash
+      - name: Run Semgrep (OWASP Top 10)
         run: |
-          semgrep scan --config auto --config p/owasp-top-ten --config p/cwe-top-25 --config p/security-audit --sarif --output semgrep.sarif || true
+          echo "Scanning entire repository with Semgrep..."
+          # Run Semgrep and output JSON. We use || true so the action doesn't fail if findings are found.
+          semgrep scan --config="p/owasp-top-ten" --json -o semgrep-results.json . || true
 
-      - name: Run Bandit (Python Only)
-        if: steps.detect.outputs.lang == 'python'
-        shell: bash
+      - name: Upload Results to Backend
         run: |
-          bandit -r . -f sarif -o bandit.sarif || true
-
-      - name: Upload SARIF artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mavericks-sarif-results
-          path: |
-            *.sarif
-          retention-days: 1
+          echo "Preparing payload..."
+          # Combine PR info and scanner results into one JSON payload
+          jq -n \
+            --arg repo "${{ github.repository }}" \
+            --arg pr "${{ github.event.pull_request.number }}" \
+            --arg sha "${{ github.event.pull_request.head.sha }}" \
+            --slurpfile results semgrep-results.json \
+            '{repository: $repo, pr_number: ($pr | tonumber), commit_sha: $sha, results: $results[0]}' > payload.json
+          
+          echo "Sending payload to backend..."
+          curl -X POST -H "Content-Type: application/json" \
+               -d @payload.json \
+               ${{ secrets.BACKEND_PUBLIC_URL }}/api/assessments/sast-results
