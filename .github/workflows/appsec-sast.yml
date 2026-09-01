@@ -21,13 +21,19 @@ jobs:
 
       - name: Install Scanners
         run: |
-          pip install semgrep
+          pip install semgrep bandit
 
-      - name: Run Semgrep (OWASP Top 10)
+      - name: Run Semgrep (Comprehensive Security Rulesets)
         run: |
-          echo "Scanning entire repository with Semgrep..."
-          # Run Semgrep and output JSON. We use || true so the action doesn't fail if findings are found.
-          semgrep scan --config="p/owasp-top-ten" --json -o semgrep-results.json . || true
+          echo "Scanning entire repository with Semgrep comprehensive rules..."
+          semgrep scan \
+            --config="p/default" \
+            --config="p/security-audit" \
+            --config="p/python" \
+            --config="p/cwe-top-25" \
+            --config="p/secrets" \
+            --config="p/owasp-top-ten" \
+            --json -o semgrep-results.json . || true
 
       - name: Upload Results to Backend
         run: |
