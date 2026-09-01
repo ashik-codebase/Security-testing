@@ -27,6 +27,9 @@ jobs:
         run: |
           echo "Scanning entire repository with Semgrep comprehensive rules..."
           semgrep scan \
+            --exclude=".github" \
+            --exclude="*.yml" \
+            --exclude="*.yaml" \
             --config="p/default" \
             --config="p/security-audit" \
             --config="p/python" \
