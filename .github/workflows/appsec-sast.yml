@@ -55,7 +55,7 @@ jobs:
           # Remove trailing slash if present
           BACKEND_URL="${BACKEND_URL%/}"
           
-          echo "Sending payload to $BACKEND_URL/api/assessments/sast-results..."
+          echo "Sending payload directly to $BACKEND_URL..."
           curl -X POST -H "Content-Type: application/json" \
                -d @payload.json \
-               "$BACKEND_URL/api/assessments/sast-results"
+               "$BACKEND_URL"
