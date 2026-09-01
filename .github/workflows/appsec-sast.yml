@@ -1,0 +1,47 @@
+name: AppSec SAST Scanner
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sast-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for dataflow context if needed
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Scanners
+        run: |
+          # Install Semgrep natively (no Docker as per MVP constraints)
+          pip install semgrep
+
+      - name: Run Semgrep (OWASP Top 10)
+        run: |
+          echo "Scanning entire repository with Semgrep..."
+          # Run Semgrep and output JSON. We use || true so the action doesn't fail if findings are found.
+          semgrep scan --config="p/owasp-top-ten" --json -o semgrep-results.json . || true
+
+      - name: Upload Results to Backend
+        run: |
+          echo "Preparing payload..."
+          # Combine PR info and scanner results into one JSON payload
+          jq -n \
+            --arg repo "${{ github.repository }}" \
+            --arg pr "${{ github.event.pull_request.number }}" \
+            --arg sha "${{ github.event.pull_request.head.sha }}" \
+            --slurpfile results semgrep-results.json \
+            '{repository: $repo, pr_number: ($pr | tonumber), commit_sha: $sha, results: $results[0]}' > payload.json
+          
+          echo "Sending payload to backend..."
+          curl -X POST -H "Content-Type: application/json" \
+               -d @payload.json \
+               ${{ secrets.BACKEND_PUBLIC_URL }}/api/assessments/sast-results
