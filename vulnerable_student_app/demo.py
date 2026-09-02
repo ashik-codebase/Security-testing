@@ -13,7 +13,7 @@ def get_user_profile(username: str):
     
     # Insecure string interpolation in SQL query
     query = f"SELECT id, username, email, role FROM users WHERE username = '{username}'"
-    cursor.execute(query)
+    cursor.execute(sql_query, (user_input,))
     return cursor.fetchone()
 
 def run_system_diagnostic(host: str):
