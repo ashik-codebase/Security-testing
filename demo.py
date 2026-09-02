@@ -2,7 +2,7 @@ import os
 import sqlite3
 import hashlib
 import subprocess
-#test 4656gdfxhb
+#test 4656gdfxhbttgthhyh
 def get_user_profile(username: str):
     """
     VULNERABILITY 1: SQL Injection (OWASP A03:2021 / CWE-89)
