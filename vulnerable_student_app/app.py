@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 
-# Initialize In-Memory Database for local testing
+# Initialize In-Memory Database for local testing ok
 def init_db():
     conn = sqlite3.connect(":memory:", check_same_thread=False)
     cursor = conn.cursor()
