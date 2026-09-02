@@ -21,9 +21,9 @@ def run_system_diagnostic(host: str):
     VULNERABILITY 2: OS Command Injection (OWASP A03:2021 / CWE-78)
     Unsanitized user input passed to system shell.
     """
-    # Insecure shell command execution with shell=True
+    # Insecure shell command execution with shell=False
     cmd = f"ping -c 1 {host}"
-    output = subprocess.check_output(cmd, shell=True)
+    output = subprocess.check_output(cmd, shell=False)
     return output.decode("utf-8")
 
 def hash_user_password(password: str):
@@ -32,7 +32,7 @@ def hash_user_password(password: str):
     Using broken MD5 hashing for passwords instead of Argon2id / bcrypt / PBKDF2.
     """
     # Insecure legacy MD5 hash
-    hasher = hashlib.md5()
+    hasher = hashlib.sha256()
     hasher.update(password.encode("utf-8"))
     return hasher.hexdigest()
 
