@@ -38,3 +38,4 @@ def hash_user_password(password: str):
 
 if __name__ == "__main__":
     print("Testing Security Demo App...")
+#test
